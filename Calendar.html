@@ -103,6 +103,11 @@
                 color: red;
             }
 
+            .holiday{
+                float:left;
+                width: 100%;
+            }
+
             .clear{ clear: left; }
         </style>
 
@@ -111,14 +116,48 @@
         <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
         <script src="https://unpkg.com/jquery@3.1.0/dist/jquery.min.js"></script>
         <script type="text/babel">
+
+            var Holidays = React.createClass({
+                getInitialState: function () {
+                    return { holidays: {} };
+                },
+                componentWillReceiveProps: function(nextProps) {
+                    this.setState({ holidays: nextProps.holidays });
+                },
+                render: function () {
+                    var holidays = [];
+                    for(var date in this.state.holidays) {
+                        var f = [];
+                        var h = this.state.holidays[date];
+
+                        for(var i = 0; i < h.length; i++) {
+                            if(this.props.public_only && h[i].public || (this.props.public_only == false)) {
+                                f.push(<span className="holiday"><b>{h[i].date}</b> - {h[i].name}</span>);
+                            }
+                        }
+
+                        holidays.push(<span id={"hd" + date}>{f}</span>);
+                    }
+
+                    return <div className="holiday_container">{holidays}</div>;
+                }
+            });
+
             var Calendar = React.createClass({
+                // Load holidays data from a public API (https://holidayapi.com/)
+                loadHolidays: function (country, year) {
+                    var url = 'https://holidayapi.com/v1/holidays?key=' + this.state.api_key + '&country=' + country + '&year=' + year;
+                    $.getJSON(url, null, function (data) {
+                        this.setState({ holidays: data.holidays });
+                    }.bind(this));
+                },
                 handleYearChange: function (e) {
                     this.setState({ selected_year: parseInt(e.target.value) });
-                    this.loadHolidays();
+                    this.loadHolidays(this.state.selected_country, e.target.value);
                 },
                 handleCountryChange: function (e) {
                     this.setState({ selected_country: e.target.value });
-                    this.loadHolidays();
+                    this.loadHolidays(e.target.value, this.state.selected_year);
                 },
                 handlePreviousClick: function (e) {
                     this.handleMonthChange(this.state.selected_month - 1);
@@ -135,24 +174,23 @@
                     var is_min_year = month <= 0 && year == this.props.min_year;
                     this.setState({ selected_month: month, selected_year: year, is_max_year: is_max_year, is_last_month: is_last_month, is_min_year: is_min_year, is_first_month: is_first_month });
                 },
+                handleShowPublicHolidays: function (e) {
+                    this.setState({ only_public_holidays: e.target.checked });
+                },
                 handleMouseEnter: function(e) {
                 },
                 handleMouseLeave: function(e) {
                 },
-                // Load holidays data from a public API (https://holidayapi.com/)
-                loadHolidays: function () {
-                    var url = 'https://holidayapi.com/v1/holidays?key=' + this.state.api_key + '&country=' + this.state.selected_country + '&year=' + this.state.selected_year;
-                    $.getJSON(url, null, function (data) {
-                            this.setState({ holidays: data.holidays });
-                    }.bind(this));
+                componentWillMount: function () {
+                    this.loadHolidays(this.state.selected_country, this.state.selected_year);
                 },
                 getInitialState: function () {
                     var opts = {
                         api_key: '13c522f8-a111-41ad-961d-f9e01138f1e4',
                         selected_country: 'BR',
+                        only_public_holidays: false,
                         months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
                         weeks: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
-                        holidays: [],
                         countries: [
                         { key: 'AR', value: 'Argentina' }, { key: 'AO', value: 'Angola' }, { key: 'AU', value: 'Australia' }, { key: 'AW', value: 'Aruba' }, { key: 'BE', value: 'Belgium' },
                         { key: 'BG', value: 'Bulgaria' }, { key: 'BR', value: 'Brazil' }, { key: 'CA', value: 'Canada' }, { key: 'CH', value: 'Switzerland' }, { key: 'CN', value: 'China' },
@@ -174,61 +212,58 @@
 
                     return opts;
                 },
-                componentDidMount: function () {
-                    this.loadHolidays();
-                },
                 render: function () {
                     var country_options = [];
                     var year_options = [];
-                    var week_days = [];
                     
                     for(var i = 0; i < this.state.countries.length; i++)
                         country_options.push(<option value={this.state.countries[i].key}>{this.state.countries[i].value}</option>);
                     for(var i = this.props.min_year; i <= this.props.max_year; i++)
                         year_options.push(<option value={i}>{i}</option>);
+            console.error(this.state.only_public_holidays);
+                    return (<div>
+                                <div className="country"><select onChange={this.handleCountryChange} value={this.state.selected_country}>{country_options}</select></div>
+                                <div className="year"><select onChange={this.handleYearChange} value={this.state.selected_year}>{year_options}</select></div>
+                                {this.renderHeader()}
+                                {this.renderCalendar()}
+                                <input type="checkbox" onChange={this.handleShowPublicHolidays} /><label>Exibir apenas feriados publicos</label>
+                                <Holidays holidays={this.state.holidays} public_only={this.state.only_public_holidays} />
+                                <div className="clear"></div>
+                            </div>);
+                },
+                renderHeader: function() {
+                    return (<div className="header">
+                                <a className={"previous_month" + (this.state.is_min_year ? " disabled" : "" )} href="#" onClick={this.handlePreviousClick}>&lt;</a>
+                                <span className="current_month">{this.state.months[this.state.selected_month]} / {this.state.selected_year}</span>
+                                <a className={"next_month" + (this.state.is_max_year ? " disabled" : "" )} href="#" onClick={this.handleNextClick}>&gt;</a>
+                            </div>);
+                },
+                renderCalendar: function() {
+                    var week_days = [];
+                    var days = [];
+                    var first_day = new Date(this.state.selected_year, this.state.selected_month, 1);
+                    var last_day = new Date(this.state.selected_year, this.state.selected_month + 1, 0);
+                    var current_day = first_day;
+                    first_day.setDate(-first_day.getDay() + 1);
+                    last_day.setDate(last_day.getDate() + (6 - last_day.getDay()));
                     for(var i = 0; i <= this.state.weeks.length; i++) {
                         week_days.push(<span>{this.state.weeks[i]}</span>);
                     }
 
-            var days = [];
-            var holidays = [];
-            var first_day = new Date(this.state.selected_year, this.state.selected_month, 1);
-            var last_day = new Date(this.state.selected_year, this.state.selected_month + 1, 0);
-            var current_day = first_day;
-            first_day.setDate(-first_day.getDay() + 1);
-            last_day.setDate(last_day.getDate() + (6 - last_day.getDay()));
-            while(current_day <= last_day) {
-                var sdate = current_day.getFullYear() + '-' + current_day.getMonth() + '-' + current_day.getDate();
-                var is_today = current_day.setHours(0,0,0,0) == new Date().setHours(0,0,0,0);
-                var is_last_week_day = current_day.getDay() == 6;
-                var is_first_week_day = current_day.getDay() == 0;
-                var is_outof_month = current_day.getMonth() != this.state.selected_month;
-                days.push(<span className={"day" + (is_first_week_day ? " first_week_day" : "" ) + (is_last_week_day ? " last_week_day" : "" ) + (is_outof_month ? " out_of_month" : "") + (is_today ? " today" : "")} onMouseEnter={this.handleMouseEnter} onMouseLeave={this.handleMouseLeave}>{current_day.getDate()}</span>);
+                    while(current_day <= last_day) {
+                        var is_today = current_day.setHours(0,0,0,0) == new Date().setHours(0,0,0,0);
+                        var is_last_week_day = current_day.getDay() == 6;
+                        var is_first_week_day = current_day.getDay() == 0;
+                        var is_outof_month = current_day.getMonth() != this.state.selected_month;
+                        days.push(<span className={"day" + (is_first_week_day ? " first_week_day" : "" ) + (is_last_week_day ? " last_week_day" : "" ) + (is_outof_month ? " out_of_month" : "" ) + (is_today ? " today" : "" )} onMouseEnter={this.handleMouseEnter} onMouseLeave={this.handleMouseLeave}>{current_day.getDate()}</span>);
+                        current_day.setDate(current_day.getDate() + 1);
+                    }
 
-                var holiday = this.state.holidays[sdate] ?? [];
-                for(var i = 0; i < holiday.length; i++)
-                    holidays.push(<span id={"hd" + sdate}></span>
-
-                current_day.setDate(current_day.getDate() + 1);
-            }
-
-                    return (<div>
-                                <div className="country"><select onChange={this.handleCountryChange} value={this.state.selected_country}>{country_options}</select></div>
-                                <div className="year"><select onChange={this.handleYearChange} value={this.state.selected_year}>{year_options}</select></div>
-                                <div className="header">
-                                    <a className={"previous_month" + (this.state.is_min_year ? " disabled" : "")} href="#" onClick={this.handlePreviousClick}>&lt;</a>
-                                    <span className="current_month">{this.state.months[this.state.selected_month]} / {this.state.selected_year}</span>
-                                    <a className={"next_month" + (this.state.is_max_year ? " disabled" : "")} href="#" onClick={this.handleNextClick}>&gt;</a>
-                                </div>
-                                <div className="week">{week_days}</div>
-                                {days}
-                                <div className="holiday_container">
-                                    asdasdasd
-                                </div>
-                                <div className="clear"></div>
-                            </div>);
-                },
+                    return (<div><div className="week">{week_days}</div>
+                            {days}</div>);
+                }
             });
+
             ReactDOM.render(<Calendar min_year="1900" max_year="2020" />, document.getElementById("calendar"));
         </script>
     </head>
