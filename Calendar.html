@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title></title>
+
+        <script src="https://unpkg.com/react@15.3.2/dist/react.min.js"></script>
+        <script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.min.js"></script>
+        <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+        <script src="https://unpkg.com/jquery@3.1.0/dist/jquery.min.js"></script>
+        <script type="text/babel">
+            var Calendar = React.createClass({
+                handleMonthChange: function (e) {
+                    this.setState({ selected_month: e.target.value });
+                },
+                handleYearChange: function (e) {
+                    this.setState({ selected_year: e.target.value });
+                    this.loadHolidays();
+                },
+                handleCountryChange: function (e) {
+                    this.setState({ selected_country: e.target.value });
+                    this.loadHolidays();
+                },
+                handlePreviousClick: function (e) {
+
+                },
+                handleNextClick: function (e) {
+
+                },
+                // Load holidays data from a public API (https://holidayapi.com/)
+                loadHolidays: function () {
+                    return;
+                    var url = 'https://holidayapi.com/v1/holidays?key=' + this.state.api_key + '&country=' + this.state.selected_country + '&year=' + this.state.selected_year;
+                    $.ajax({
+                        url: url,
+                        dataType: 'jsonp',
+                        jsonp: 'callback',
+                        cache: false,
+                        success: function (data) {
+                            this.setState({ data: { holidays: data } });
+                        }.bind(this),
+                        error: function (xhr, status, err) {
+                            console.error(url, status, err.toString());
+                        }.bind(this)
+                    });
+                },
+                getInitialState: function () {
+                    return {
+                        api_key: '13c522f8-a111-41ad-961d-f9e01138f1e4',
+                        selected_month: new Date().getMonth(),
+                        selected_year: new Date().getFullYear(),
+                        selected_country: 'BR',
+                        data: {
+                            holidays: [],
+                            countries: [
+                            { key: 'AR', value: 'Argentina' }, { key: 'AO', value: 'Angola' }, { key: 'AU', value: 'Australia' }, { key: 'AW', value: 'Aruba' }, { key: 'BE', value: 'Belgium' },
+                            { key: 'BG', value: 'Bulgaria' }, { key: 'BR', value: 'Brazil' }, { key: 'CA', value: 'Canada' }, { key: 'CH', value: 'Switzerland' }, { key: 'CN', value: 'China' },
+                            { key: 'CO', value: 'Colombia' }, { key: 'CZ', value: 'Czech Republic' }, { key: 'DE', value: 'Germany' }, { key: 'DK', value: 'Denmark' }, { key: 'ES', value: ' Spain' },
+                            { key: 'FR', value: 'France' }, { key: 'GB', value: 'United Kingdom' }, { key: 'GT', value: 'Guatemala' }, { key: 'HR', value: 'Croatia' }, { key: 'HU', value: 'Hungary' },
+                            { key: 'ID', value: 'Indonesia' }, { key: 'IE', value: 'Ireland' }, { key: 'IN', value: 'India' }, { key: 'IT', value: 'Italy' }, { key: 'LS', value: 'Lesotho' },
+                            { key: 'LU', value: 'Luxembourg' }, { key: 'MG', value: 'Madagascar' }, { key: 'MQ', value: 'Martinique' }, { key: 'MX', value: 'Mexico' }, { key: 'NL', value: 'Netherlands' },
+                            { key: 'NO', value: 'Norway' }, { key: 'PL', value: 'Poland' }, { key: 'PR', value: 'Puerto Rico' }, { key: 'RU', value: 'Russia' }, { key: 'SI', value: 'Slovenia' },
+                            { key: 'SK', value: 'Slovakia' }, { key: 'UA', value: 'Ukraine' }, { key: 'US', value: 'United States' }]
+                        }
+                    };
+                },
+                componentDidMount: function () {
+                    this.loadHolidays();
+                },
+                render: function () {
+                    var countries = this.state.data.countries;
+                    var country_options = [];
+                    var year_options = [];
+                    
+                    for(var i = 0; i < countries.length; i++)
+                        country_options.push(<option value={countries[i].key}>{countries[i].value}</option>);
+                    for(var i = 1900; i <= new Date().getFullYear(); i++)
+                        year_options.push(<option value={i}>{i}</option>);
+
+                    return (<div>
+                                <div><select onChange={this.handleCountryChange} value={this.state.selected_country}>{country_options}</select></div>
+                                <div><select onchange={this.handleYearChange} value={this.state.selected_year}>{year_options}</select></div>
+                                <div className="header">
+                                    <i onClick={this.previous}></i>
+                                    <i onClick={this.next}></i>
+                                </div>
+                            </div>);
+                },
+            });
+            ReactDOM.render(<Calendar />, document.getElementById("calendar"));
+        </script>
+    </head>
+    <body>
+        <div id="calendar"></div>
+    </body>
+</html>
