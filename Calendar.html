@@ -3,17 +3,117 @@
     <head>
         <title></title>
 
+        <style>
+            #calendar {
+                display:block;
+                width:500px;
+                border:solid 1px black;
+                padding: 5px;
+            }
+
+            .country{
+                float:left;
+                width:65%;
+                padding: 3px;
+            }
+
+            .country select { width: 100%; }
+
+            .year {
+                float:left;
+                width:30%;
+                padding: 3px;
+            }
+
+            .year select { width: 100%; }
+
+            .header {
+                float:left;
+                width:100%;
+                height:30px;
+                background-color: cadetblue;
+                line-height: 30px;
+                text-align: center;
+            }
+
+            .week {
+                float: left;
+                width:100%;
+                border-top:solid 1px black;
+                height: 30px;
+                line-height: 30px;
+                text-align: center;
+            }
+            .week span {
+                float: left;
+                width: 14%;
+                font-weight:bold;
+            }
+
+            .day {
+                float:left;
+                width: 14%;
+                text-align: center;
+                border-left:solid 1px black;
+                font-weight:bold;
+            }
+
+            .first_week_day {
+                border-left:none;
+                background-color: darkgray;
+            }
+
+            .last_week_day {
+                border-left:none;
+                background-color: darkgray;
+            }
+
+            .out_of_month {
+                color: gray;
+            }
+
+            .current_month {
+            }
+
+            .previous_month {
+                margin-left: 10px;
+                float: left;
+                width: 20px;
+                text-decoration: none;
+                color: white;
+                font-weight:bold;
+            }
+
+            .next_month {
+                margin-right: 10px;
+                float: right;
+                width: 20px;
+                text-decoration: none;
+                color: white;
+                font-weight:bold;
+            }
+
+            .disabled {
+                pointer-events: none;
+                cursor: default;
+                opacity: 0.6;
+            }
+
+            .today {
+                color: red;
+            }
+
+            .clear{ clear: left; }
+        </style>
+
         <script src="https://unpkg.com/react@15.3.2/dist/react.min.js"></script>
         <script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.min.js"></script>
         <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
         <script src="https://unpkg.com/jquery@3.1.0/dist/jquery.min.js"></script>
         <script type="text/babel">
             var Calendar = React.createClass({
-                handleMonthChange: function (e) {
-                    this.setState({ selected_month: e.target.value });
-                },
                 handleYearChange: function (e) {
-                    this.setState({ selected_year: e.target.value });
+                    this.setState({ selected_year: parseInt(e.target.value) });
                     this.loadHolidays();
                 },
                 handleCountryChange: function (e) {
@@ -21,72 +121,115 @@
                     this.loadHolidays();
                 },
                 handlePreviousClick: function (e) {
-
+                    this.handleMonthChange(this.state.selected_month - 1);
                 },
                 handleNextClick: function (e) {
-
+                    this.handleMonthChange(this.state.selected_month + 1);
+                },
+                handleMonthChange: function(month) {
+                    var is_last_month = month > 11;
+                    var is_first_month = month < 0;
+                    month = is_first_month ? 11 : is_last_month ? 0 : month;
+                    var year = is_first_month ? this.state.selected_year - 1 : is_last_month ? this.state.selected_year + 1 : this.state.selected_year;
+                    var is_max_year = month >= 11 && year == this.props.max_year;
+                    var is_min_year = month <= 0 && year == this.props.min_year;
+                    this.setState({ selected_month: month, selected_year: year, is_max_year: is_max_year, is_last_month: is_last_month, is_min_year: is_min_year, is_first_month: is_first_month });
+                },
+                handleMouseEnter: function(e) {
+                },
+                handleMouseLeave: function(e) {
                 },
                 // Load holidays data from a public API (https://holidayapi.com/)
                 loadHolidays: function () {
-                    return;
                     var url = 'https://holidayapi.com/v1/holidays?key=' + this.state.api_key + '&country=' + this.state.selected_country + '&year=' + this.state.selected_year;
-                    $.ajax({
-                        url: url,
-                        dataType: 'jsonp',
-                        jsonp: 'callback',
-                        cache: false,
-                        success: function (data) {
-                            this.setState({ data: { holidays: data } });
-                        }.bind(this),
-                        error: function (xhr, status, err) {
-                            console.error(url, status, err.toString());
-                        }.bind(this)
-                    });
+                    $.getJSON(url, null, function (data) {
+                            this.setState({ holidays: data.holidays });
+                    }.bind(this));
                 },
                 getInitialState: function () {
-                    return {
+                    var opts = {
                         api_key: '13c522f8-a111-41ad-961d-f9e01138f1e4',
-                        selected_month: new Date().getMonth(),
-                        selected_year: new Date().getFullYear(),
                         selected_country: 'BR',
-                        data: {
-                            holidays: [],
-                            countries: [
-                            { key: 'AR', value: 'Argentina' }, { key: 'AO', value: 'Angola' }, { key: 'AU', value: 'Australia' }, { key: 'AW', value: 'Aruba' }, { key: 'BE', value: 'Belgium' },
-                            { key: 'BG', value: 'Bulgaria' }, { key: 'BR', value: 'Brazil' }, { key: 'CA', value: 'Canada' }, { key: 'CH', value: 'Switzerland' }, { key: 'CN', value: 'China' },
-                            { key: 'CO', value: 'Colombia' }, { key: 'CZ', value: 'Czech Republic' }, { key: 'DE', value: 'Germany' }, { key: 'DK', value: 'Denmark' }, { key: 'ES', value: ' Spain' },
-                            { key: 'FR', value: 'France' }, { key: 'GB', value: 'United Kingdom' }, { key: 'GT', value: 'Guatemala' }, { key: 'HR', value: 'Croatia' }, { key: 'HU', value: 'Hungary' },
-                            { key: 'ID', value: 'Indonesia' }, { key: 'IE', value: 'Ireland' }, { key: 'IN', value: 'India' }, { key: 'IT', value: 'Italy' }, { key: 'LS', value: 'Lesotho' },
-                            { key: 'LU', value: 'Luxembourg' }, { key: 'MG', value: 'Madagascar' }, { key: 'MQ', value: 'Martinique' }, { key: 'MX', value: 'Mexico' }, { key: 'NL', value: 'Netherlands' },
-                            { key: 'NO', value: 'Norway' }, { key: 'PL', value: 'Poland' }, { key: 'PR', value: 'Puerto Rico' }, { key: 'RU', value: 'Russia' }, { key: 'SI', value: 'Slovenia' },
-                            { key: 'SK', value: 'Slovakia' }, { key: 'UA', value: 'Ukraine' }, { key: 'US', value: 'United States' }]
-                        }
+                        months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+                        weeks: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
+                        holidays: [],
+                        countries: [
+                        { key: 'AR', value: 'Argentina' }, { key: 'AO', value: 'Angola' }, { key: 'AU', value: 'Australia' }, { key: 'AW', value: 'Aruba' }, { key: 'BE', value: 'Belgium' },
+                        { key: 'BG', value: 'Bulgaria' }, { key: 'BR', value: 'Brazil' }, { key: 'CA', value: 'Canada' }, { key: 'CH', value: 'Switzerland' }, { key: 'CN', value: 'China' },
+                        { key: 'CO', value: 'Colombia' }, { key: 'CZ', value: 'Czech Republic' }, { key: 'DE', value: 'Germany' }, { key: 'DK', value: 'Denmark' }, { key: 'ES', value: ' Spain' },
+                        { key: 'FR', value: 'France' }, { key: 'GB', value: 'United Kingdom' }, { key: 'GT', value: 'Guatemala' }, { key: 'HR', value: 'Croatia' }, { key: 'HU', value: 'Hungary' },
+                        { key: 'ID', value: 'Indonesia' }, { key: 'IE', value: 'Ireland' }, { key: 'IN', value: 'India' }, { key: 'IT', value: 'Italy' }, { key: 'LS', value: 'Lesotho' },
+                        { key: 'LU', value: 'Luxembourg' }, { key: 'MG', value: 'Madagascar' }, { key: 'MQ', value: 'Martinique' }, { key: 'MX', value: 'Mexico' }, { key: 'NL', value: 'Netherlands' },
+                        { key: 'NO', value: 'Norway' }, { key: 'PL', value: 'Poland' }, { key: 'PR', value: 'Puerto Rico' }, { key: 'RU', value: 'Russia' }, { key: 'SI', value: 'Slovenia' },
+                        { key: 'SK', value: 'Slovakia' }, { key: 'UA', value: 'Ukraine' }, { key: 'US', value: 'United States' }]
                     };
+
+                    var current_date = new Date();
+                    opts.selected_month = current_date.getMonth();
+                    opts.selected_year = current_date.getFullYear();
+                    opts.is_max_year = opts.selected_year == this.props.max_year;
+                    opts.is_min_year = opts.selected_year == this.props.min_year;
+                    opts.is_first_month = opts.selected_month == 0;
+                    opts.is_last_month = opts.selected_month == 11;
+
+                    return opts;
                 },
                 componentDidMount: function () {
                     this.loadHolidays();
                 },
                 render: function () {
-                    var countries = this.state.data.countries;
                     var country_options = [];
                     var year_options = [];
+                    var week_days = [];
                     
-                    for(var i = 0; i < countries.length; i++)
-                        country_options.push(<option value={countries[i].key}>{countries[i].value}</option>);
-                    for(var i = 1900; i <= new Date().getFullYear(); i++)
+                    for(var i = 0; i < this.state.countries.length; i++)
+                        country_options.push(<option value={this.state.countries[i].key}>{this.state.countries[i].value}</option>);
+                    for(var i = this.props.min_year; i <= this.props.max_year; i++)
                         year_options.push(<option value={i}>{i}</option>);
+                    for(var i = 0; i <= this.state.weeks.length; i++) {
+                        week_days.push(<span>{this.state.weeks[i]}</span>);
+                    }
+
+            var days = [];
+            var holidays = [];
+            var first_day = new Date(this.state.selected_year, this.state.selected_month, 1);
+            var last_day = new Date(this.state.selected_year, this.state.selected_month + 1, 0);
+            var current_day = first_day;
+            first_day.setDate(-first_day.getDay() + 1);
+            last_day.setDate(last_day.getDate() + (6 - last_day.getDay()));
+            while(current_day <= last_day) {
+                var sdate = current_day.getFullYear() + '-' + current_day.getMonth() + '-' + current_day.getDate();
+                var is_today = current_day.setHours(0,0,0,0) == new Date().setHours(0,0,0,0);
+                var is_last_week_day = current_day.getDay() == 6;
+                var is_first_week_day = current_day.getDay() == 0;
+                var is_outof_month = current_day.getMonth() != this.state.selected_month;
+                days.push(<span className={"day" + (is_first_week_day ? " first_week_day" : "" ) + (is_last_week_day ? " last_week_day" : "" ) + (is_outof_month ? " out_of_month" : "") + (is_today ? " today" : "")} onMouseEnter={this.handleMouseEnter} onMouseLeave={this.handleMouseLeave}>{current_day.getDate()}</span>);
+
+                var holiday = this.state.holidays[sdate] ?? [];
+                for(var i = 0; i < holiday.length; i++)
+                    holidays.push(<span id={"hd" + sdate}></span>
+
+                current_day.setDate(current_day.getDate() + 1);
+            }
 
                     return (<div>
-                                <div><select onChange={this.handleCountryChange} value={this.state.selected_country}>{country_options}</select></div>
-                                <div><select onchange={this.handleYearChange} value={this.state.selected_year}>{year_options}</select></div>
+                                <div className="country"><select onChange={this.handleCountryChange} value={this.state.selected_country}>{country_options}</select></div>
+                                <div className="year"><select onChange={this.handleYearChange} value={this.state.selected_year}>{year_options}</select></div>
                                 <div className="header">
-                                    <i onClick={this.previous}></i>
-                                    <i onClick={this.next}></i>
+                                    <a className={"previous_month" + (this.state.is_min_year ? " disabled" : "")} href="#" onClick={this.handlePreviousClick}>&lt;</a>
+                                    <span className="current_month">{this.state.months[this.state.selected_month]} / {this.state.selected_year}</span>
+                                    <a className={"next_month" + (this.state.is_max_year ? " disabled" : "")} href="#" onClick={this.handleNextClick}>&gt;</a>
                                 </div>
+                                <div className="week">{week_days}</div>
+                                {days}
+                                <div className="holiday_container">
+                                    asdasdasd
+                                </div>
+                                <div className="clear"></div>
                             </div>);
                 },
             });
-            ReactDOM.render(<Calendar />, document.getElementById("calendar"));
+            ReactDOM.render(<Calendar min_year="1900" max_year="2020" />, document.getElementById("calendar"));
         </script>
     </head>
     <body>
