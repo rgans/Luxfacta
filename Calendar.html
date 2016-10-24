@@ -2,144 +2,112 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
         <title></title>
-
-        <style>
-            #calendar {
-                display:block;
-                width:500px;
-                border:solid 1px black;
-                padding: 5px;
-            }
-
-            .country{
-                float:left;
-                width:65%;
-                padding: 3px;
-            }
-
-            .country select { width: 100%; }
-
-            .year {
-                float:left;
-                width:30%;
-                padding: 3px;
-            }
-
-            .year select { width: 100%; }
-
-            .header {
-                float:left;
-                width:100%;
-                height:30px;
-                background-color: cadetblue;
-                line-height: 30px;
-                text-align: center;
-            }
-
-            .week {
-                float: left;
-                width:100%;
-                border-top:solid 1px black;
-                height: 30px;
-                line-height: 30px;
-                text-align: center;
-            }
-            .week span {
-                float: left;
-                width: 14%;
-                font-weight:bold;
-            }
-
-            .day {
-                float:left;
-                width: 14%;
-                text-align: center;
-                border-left:solid 1px black;
-                font-weight:bold;
-            }
-
-            .first_week_day {
-                border-left:none;
-                background-color: darkgray;
-            }
-
-            .last_week_day {
-                border-left:none;
-                background-color: darkgray;
-            }
-
-            .out_of_month {
-                color: gray;
-            }
-
-            .current_month {
-            }
-
-            .previous_month {
-                margin-left: 10px;
-                float: left;
-                width: 20px;
-                text-decoration: none;
-                color: white;
-                font-weight:bold;
-            }
-
-            .next_month {
-                margin-right: 10px;
-                float: right;
-                width: 20px;
-                text-decoration: none;
-                color: white;
-                font-weight:bold;
-            }
-
-            .disabled {
-                pointer-events: none;
-                cursor: default;
-                opacity: 0.6;
-            }
-
-            .today {
-                color: red;
-            }
-
-            .holiday{
-                float:left;
-                width: 100%;
-            }
-
-            .clear{ clear: left; }
-        </style>
-
+        <link rel="stylesheet" href="calendar.css" />
         <script src="https://unpkg.com/react@15.3.2/dist/react.min.js"></script>
         <script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.min.js"></script>
         <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
         <script src="https://unpkg.com/jquery@3.1.0/dist/jquery.min.js"></script>
         <script type="text/babel">
 
-            var Holidays = React.createClass({
+            var CalendarHolidayList = React.createClass({
                 getInitialState: function () {
-                    return { holidays: {} };
+                    return { holidays: this.props.holidays };
                 },
                 componentWillReceiveProps: function(nextProps) {
                     this.setState({ holidays: nextProps.holidays });
                 },
                 render: function () {
                     var holidays = [];
+
                     for(var date in this.state.holidays) {
                         var f = [];
                         var h = this.state.holidays[date];
 
                         for(var i = 0; i < h.length; i++) {
-                            if(this.props.public_only && h[i].public || (this.props.public_only == false)) {
-                                f.push(<span className="holiday"><b>{h[i].date}</b> - {h[i].name}</span>);
-                            }
+                            f.push(<span className="holiday_info"><b>{h[i].date}</b> - {h[i].name}</span>);
                         }
 
                         holidays.push(<span id={"hd" + date}>{f}</span>);
                     }
 
-                    return <div className="holiday_container">{holidays}</div>;
+                    return (<div className="holiday_container">
+                            <input type="checkbox" onChange={this.props.onShowPublicHolidaysChange} />
+                            <label>Exibir apenas feriados publicos</label>
+                            {holidays}</div>);
+                }
+            });
+
+            var CalendarGrid = React.createClass({
+                getInitialState: function () {
+                    var opts = {
+                        weeks: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
+                        holidays: this.props.holidays,
+                        selected_date: this.props.date,
+                        title: this.props.title
+                    };
+
+                    return opts;
+                },
+                componentWillReceiveProps: function(nextProps) {
+                    this.setState({ holidays: nextProps.holidays, selected_date: nextProps.date, title: nextProps.title });
+                },
+                isHoliday: function(date) {
+                    var mm = date.getMonth() + 1;
+                    var dd = date.getDate();
+                    var sdate = [date.getFullYear(), (mm <= 9 ? '0' : '') + mm, (dd <= 9 ? '0' : '') + dd].join('-');
+                    return this.state.holidays[sdate] != null;
+                },
+                renderHeader: function() {
+                    var nextButton = <a className="next" href="#" onClick={this.props.onNextClick}>&gt;</a>;
+                    var previousButton = <a className="previous" href="#" onClick={this.props.onPreviousClick}>&lt;</a>;
+                    
+                    return (<div className="header">
+                                {this.props.onNextClick && nextButton}
+                                <span className="title">{this.state.title}</span>
+                                {this.props.onPreviousClick && previousButton}
+                            </div>);
+                },
+                renderWeeks: function() {
+                    var week_days = [];
+                    for(var i = 0; i <= this.state.weeks.length; i++) {
+                        week_days.push(<span>{this.state.weeks[i]}</span>);
+                    }
+
+                    return (<div className="week">{week_days}</div>);
+                },
+                renderDays: function() {
+                    var days = [];
+                    var current_day = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth(), 1);
+                    var last_day = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth() + 1, 0);
+                    current_day.setDate(-current_day.getDay() + 1);
+                    last_day.setDate(last_day.getDate() + (6 - last_day.getDay()));
+
+                    while(current_day <= last_day) {
+                        var is_today = current_day.setHours(0,0,0,0) == new Date().setHours(0,0,0,0);
+                        var is_last_week_day = current_day.getDay() == 6;
+                        var is_first_week_day = current_day.getDay() == 0;
+                        var is_outof_month = current_day.getMonth() != this.state.selected_date.getMonth();
+                        var is_holiday = this.isHoliday(current_day);
+                        var is_selected_day = current_day.setHours(0,0,0,0) == this.state.selected_date.setHours(0,0,0,0);
+
+                        days.push(<span className={"day" + 
+                                        (is_selected_day ? " selected_day" : "") + 
+                                        (is_first_week_day ? " first_week_day" : "" ) + 
+                                        (is_last_week_day ? " last_week_day" : "" ) + 
+                                        (is_outof_month ? " out_of_month" : "" ) + 
+                                        (is_today ? " today" : "" ) + 
+                                        (is_holiday ? " holiday" : "")}>{current_day.getDate()}</span>);
+                        current_day.setDate(current_day.getDate() + 1);
+                    }
+
+                    return (<div>{days}</div>);
+                },
+                render: function() {
+                    return (<div>
+                                {this.renderHeader()}
+                                {this.renderWeeks()}
+                                {this.renderDays()}
+                            </div>);
                 }
             });
 
@@ -151,46 +119,65 @@
                         this.setState({ holidays: data.holidays });
                     }.bind(this));
                 },
-                handleYearChange: function (e) {
-                    this.setState({ selected_year: parseInt(e.target.value) });
-                    this.loadHolidays(this.state.selected_country, e.target.value);
+                handleNextDayClick: function() {
+                    var newDate = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth(), this.state.selected_date.getDate() + 1);
+                    this.handleDateChange(newDate);
+                },
+                handlePreviousDayClick: function() {
+                    var newDate = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth(), this.state.selected_date.getDate() - 1);
+                    this.handleDateChange(newDate);
+                },
+                handleNextMonthClick: function() {
+                    var newDate = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth() + 1, this.state.selected_date.getDate());
+                    this.handleDateChange(newDate);
+                },
+                handlePreviousMonthClick: function() {
+                    var newDate = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth() - 1, this.state.selected_date.getDate());
+                    this.handleDateChange(newDate);
+                },
+                handleNextYearClick: function() {
+                    var newDate = new Date(this.state.selected_date.getFullYear() + 1, this.state.selected_date.getMonth(), this.state.selected_date.getDate());
+                    this.handleDateChange(newDate);
+                },
+                handlePreviousYearClick: function() {
+                    var newDate = new Date(this.state.selected_date.getFullYear() - 1, this.state.selected_date.getMonth(), this.state.selected_date.getDate());
+                    this.handleDateChange(newDate);
+                },
+                handleDateChange: function (newDate) {
+                    if(this.state.selected_date.getFullYear() != newDate.getFullYear()) {
+                        this.loadHolidays(this.state.selected_country, newDate.getFullYear());
+                    }
+
+                    this.setState({ selected_date: newDate });
                 },
                 handleCountryChange: function (e) {
                     this.setState({ selected_country: e.target.value });
-                    this.loadHolidays(e.target.value, this.state.selected_year);
+                    this.loadHolidays(e.target.value, this.state.selected_date.getFullYear());
                 },
-                handlePreviousClick: function (e) {
-                    this.handleMonthChange(this.state.selected_month - 1);
+                handleCalendarTypeChange: function (e) {
+                    this.setState({ type: e.target.value });
                 },
-                handleNextClick: function (e) {
-                    this.handleMonthChange(this.state.selected_month + 1);
-                },
-                handleMonthChange: function(month) {
-                    var is_last_month = month > 11;
-                    var is_first_month = month < 0;
-                    month = is_first_month ? 11 : is_last_month ? 0 : month;
-                    var year = is_first_month ? this.state.selected_year - 1 : is_last_month ? this.state.selected_year + 1 : this.state.selected_year;
-                    var is_max_year = month >= 11 && year == this.props.max_year;
-                    var is_min_year = month <= 0 && year == this.props.min_year;
-                    this.setState({ selected_month: month, selected_year: year, is_max_year: is_max_year, is_last_month: is_last_month, is_min_year: is_min_year, is_first_month: is_first_month });
-                },
-                handleShowPublicHolidays: function (e) {
+                handleShowPublicHolidaysChange: function (e) {
                     this.setState({ only_public_holidays: e.target.checked });
                 },
-                handleMouseEnter: function(e) {
-                },
-                handleMouseLeave: function(e) {
-                },
                 componentWillMount: function () {
-                    this.loadHolidays(this.state.selected_country, this.state.selected_year);
+                    this.loadHolidays(this.state.selected_country, this.state.selected_date.getFullYear());
+                },
+                getHoliday: function(date) {
+                    var mm = date.getMonth() + 1;
+                    var dd = date.getDate();
+                    var sdate = [date.getFullYear(), (mm <= 9 ? '0' : '') + mm, (dd <= 9 ? '0' : '') + dd].join('-');
+                    return this.state.holidays[sdate];
                 },
                 getInitialState: function () {
                     var opts = {
                         api_key: '13c522f8-a111-41ad-961d-f9e01138f1e4',
+                        months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+                        holidays: [],
                         selected_country: 'BR',
                         only_public_holidays: false,
-                        months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
-                        weeks: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
+                        type: 'Month',
+                        selected_date: new Date(),
                         countries: [
                         { key: 'AR', value: 'Argentina' }, { key: 'AO', value: 'Angola' }, { key: 'AU', value: 'Australia' }, { key: 'AW', value: 'Aruba' }, { key: 'BE', value: 'Belgium' },
                         { key: 'BG', value: 'Bulgaria' }, { key: 'BR', value: 'Brazil' }, { key: 'CA', value: 'Canada' }, { key: 'CH', value: 'Switzerland' }, { key: 'CN', value: 'China' },
@@ -202,69 +189,92 @@
                         { key: 'SK', value: 'Slovakia' }, { key: 'UA', value: 'Ukraine' }, { key: 'US', value: 'United States' }]
                     };
 
-                    var current_date = new Date();
-                    opts.selected_month = current_date.getMonth();
-                    opts.selected_year = current_date.getFullYear();
-                    opts.is_max_year = opts.selected_year == this.props.max_year;
-                    opts.is_min_year = opts.selected_year == this.props.min_year;
-                    opts.is_first_month = opts.selected_month == 0;
-                    opts.is_last_month = opts.selected_month == 11;
-
                     return opts;
                 },
-                render: function () {
+                getFiltratedHolidays: function() {
+                    var filtrated_holidays = {};
+                    for(var date in this.state.holidays) {
+                        var holiday = this.state.holidays[date];
+                        for(var i = 0; i < holiday.length; i++) {
+                            if(this.state.only_public_holidays == false || holiday[i].public == true) {
+                                if(!filtrated_holidays[date])
+                                    filtrated_holidays[date] = [];
+                                filtrated_holidays[date].push(holiday[i]);
+                            }
+                        }
+                    }
+
+                    return filtrated_holidays;
+                },
+                renderDayGrid: function() {
+                    var title = this.state.selected_date.getDate() + ' de ' + this.state.months[this.state.selected_date.getMonth()] + ' de ' + this.state.selected_date.getFullYear();
+                    var hours = [];
+
+                    var start_date = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth(), this.state.selected_date.getDate(), 0);
+                    var end_date = new Date(this.state.selected_date.getFullYear(), this.state.selected_date.getMonth(), this.state.selected_date.getDate() + 1, 0);
+                    var filtrated_holidays = this.getFiltratedHolidays();
+
+                    var holidays = [];
+                    var holiday = this.getHoliday(this.state.selected_date);
+                    if(holiday) {
+                        for(var i = 0; i < holiday.length; i++)
+                            holidays.push(holiday[i].name);
+                    }
+
+                    while(start_date <= end_date) {
+                        var h = start_date.getHours();
+                        hours.push(<div className="hour_container"><span className="hour">{(h <= 9 ? '0' + h : h) + ':00'}</span><div className="hour_holiday">{holidays}</div></div>);
+                        start_date.setHours(h + 1);
+                    }
+
+                    return (<div>
+                                <CalendarGrid date={this.state.selected_date} title={title} holidays={this.getFiltratedHolidays()} onNextClick={this.handleNextDayClick} onPreviousClick={this.handlePreviousDayClick} />
+                                <div className="hour_list">{hours}</div>
+                            </div>);
+                },
+                renderMonthGrid: function() {
+                    var title = this.state.months[this.state.selected_date.getMonth()] + '/' + this.state.selected_date.getFullYear();
+                    return (<CalendarGrid date={this.state.selected_date} title={title} holidays={this.getFiltratedHolidays()} onNextClick={this.handleNextMonthClick} onPreviousClick={this.handlePreviousMonthClick} />);
+                },
+                renderYearGrid: function() {
+                    var grids = [];
+                    for(var month = 0; month <= 11; month++) {
+                        var newDate = new Date(this.state.selected_date.getFullYear(), month, this.state.selected_date.getDate());
+                        grids.push(<CalendarGrid date={newDate} title={this.state.months[month]} holidays={this.getFiltratedHolidays()} onNextClick={month == 0 && this.handleNextYearClick} onPreviousClick={month == 0 && this.handlePreviousYearClick} />);
+                    }
+
+                    return (<div>
+                                <span className="header">{this.state.selected_date.getFullYear()}</span>
+                                {grids}
+                            </div>);
+                },
+                renderCountryOptions: function() {
                     var country_options = [];
-                    var year_options = [];
-                    
+
                     for(var i = 0; i < this.state.countries.length; i++)
                         country_options.push(<option value={this.state.countries[i].key}>{this.state.countries[i].value}</option>);
-                    for(var i = this.props.min_year; i <= this.props.max_year; i++)
-                        year_options.push(<option value={i}>{i}</option>);
-            console.error(this.state.only_public_holidays);
+
+                    return (<div className="country"><select onChange={this.handleCountryChange} value={this.state.selected_country}>{country_options}</select></div>);
+                },
+                renderTypeOptions: function() {
+                    return (<div className="calendar_type"><select onChange={this.handleCalendarTypeChange} value={this.state.type}>
+                                <option value="Year">Ano</option>
+                                <option value="Month">Mes</option>
+                                <option value="Day">Dia</option>
+                            </select></div>);
+                },
+                render: function () {
                     return (<div>
-                                <div className="country"><select onChange={this.handleCountryChange} value={this.state.selected_country}>{country_options}</select></div>
-                                <div className="year"><select onChange={this.handleYearChange} value={this.state.selected_year}>{year_options}</select></div>
-                                {this.renderHeader()}
-                                {this.renderCalendar()}
-                                <input type="checkbox" onChange={this.handleShowPublicHolidays} /><label>Exibir apenas feriados publicos</label>
-                                <Holidays holidays={this.state.holidays} public_only={this.state.only_public_holidays} />
+                                {this.renderCountryOptions()}
+                                {this.renderTypeOptions()}
+                                {(this.state.type == 'Day' && this.renderDayGrid()) || (this.state.type == 'Month' && this.renderMonthGrid()) || (this.state.type == 'Year' && this.renderYearGrid())}
+                                <CalendarHolidayList holidays={this.getFiltratedHolidays()} onShowPublicHolidaysChange={this.handleShowPublicHolidaysChange} />
                                 <div className="clear"></div>
                             </div>);
-                },
-                renderHeader: function() {
-                    return (<div className="header">
-                                <a className={"previous_month" + (this.state.is_min_year ? " disabled" : "" )} href="#" onClick={this.handlePreviousClick}>&lt;</a>
-                                <span className="current_month">{this.state.months[this.state.selected_month]} / {this.state.selected_year}</span>
-                                <a className={"next_month" + (this.state.is_max_year ? " disabled" : "" )} href="#" onClick={this.handleNextClick}>&gt;</a>
-                            </div>);
-                },
-                renderCalendar: function() {
-                    var week_days = [];
-                    var days = [];
-                    var first_day = new Date(this.state.selected_year, this.state.selected_month, 1);
-                    var last_day = new Date(this.state.selected_year, this.state.selected_month + 1, 0);
-                    var current_day = first_day;
-                    first_day.setDate(-first_day.getDay() + 1);
-                    last_day.setDate(last_day.getDate() + (6 - last_day.getDay()));
-                    for(var i = 0; i <= this.state.weeks.length; i++) {
-                        week_days.push(<span>{this.state.weeks[i]}</span>);
-                    }
-
-                    while(current_day <= last_day) {
-                        var is_today = current_day.setHours(0,0,0,0) == new Date().setHours(0,0,0,0);
-                        var is_last_week_day = current_day.getDay() == 6;
-                        var is_first_week_day = current_day.getDay() == 0;
-                        var is_outof_month = current_day.getMonth() != this.state.selected_month;
-                        days.push(<span className={"day" + (is_first_week_day ? " first_week_day" : "" ) + (is_last_week_day ? " last_week_day" : "" ) + (is_outof_month ? " out_of_month" : "" ) + (is_today ? " today" : "" )} onMouseEnter={this.handleMouseEnter} onMouseLeave={this.handleMouseLeave}>{current_day.getDate()}</span>);
-                        current_day.setDate(current_day.getDate() + 1);
-                    }
-
-                    return (<div><div className="week">{week_days}</div>
-                            {days}</div>);
                 }
             });
 
-            ReactDOM.render(<Calendar min_year="1900" max_year="2020" />, document.getElementById("calendar"));
+            ReactDOM.render(<Calendar />, document.getElementById("calendar"));
         </script>
     </head>
     <body>

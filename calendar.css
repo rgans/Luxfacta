@@ -1,0 +1,131 @@
+﻿#calendar {
+    display:block;
+    width:500px;
+    border:solid 1px black;
+    padding: 5px;
+}
+
+.country{
+    float:left;
+    width:67%;
+    padding: 3px;
+}
+
+.country select, .calendar_type select { width: 100%; }
+            
+.calendar_type {
+    float:left;
+    width:30%;
+    padding: 3px;
+}
+
+.year {
+    float:left;
+    width:30%;
+    padding: 3px;
+}
+
+.header {
+    float:left;
+    width:100%;
+    height:30px;
+    background-color: cadetblue;
+    line-height: 30px;
+    text-align: center;
+}
+
+.week {
+    float: left;
+    width:100%;
+    border-top:solid 1px black;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+}
+.week span {
+    float: left;
+    width: 14%;
+    font-weight:bold;
+}
+
+.day {
+    float:left;
+    width: 14%;
+    text-align: center;
+    border-left:solid 1px black;
+    font-weight:bold;
+}
+
+.first_week_day {
+    border-left:none;
+    background-color: #eeecec;
+}
+
+.last_week_day {
+    border-left:none;
+    background-color: #eeecec;
+}
+
+.out_of_month {
+    color: black;
+}
+
+.previous {
+    margin-left: 10px;
+    float: left;
+    width: 20px;
+    text-decoration: none;
+    color: white;
+    font-weight:bold;
+}
+
+.next {
+    margin-right: 10px;
+    float: right;
+    width: 20px;
+    text-decoration: none;
+    color: white;
+    font-weight:bold;
+}
+
+.today {
+    color: red;
+}
+
+.holiday {
+    background-color: red;
+}
+
+.selected_day {
+    background-color: darkgray;
+}
+
+.holiday_container .holiday_info {
+    float:left;
+    width: 100%;
+    margin-top: 5px;
+}
+
+.holiday_container {
+    float: left;
+    width: 100%;
+    padding: 5px;
+}
+
+.hour {
+    float: left;
+    color: darkgray;
+}
+
+.hour_container {
+    float: left;
+    width: 100%;
+}
+
+.hour_holiday {
+    float: right;
+    width: 100%;
+    border-bottom: solid 1px darkgray;
+}
+
+.clear{ clear: left; }
